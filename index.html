@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -10,9 +11,6 @@
             font-family: Arial, sans-serif;
             background-color: #ffffff;
             color: #000000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
             margin: 0;
             -webkit-font-smoothing: antialiased;
@@ -21,14 +19,12 @@
 
         /* --- Conteneur Principal du Calendrier --- */
         #calendar-container {
-            width: 95%;
-            max-width: 800px;
-            border: 2px solid #000000;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            width: 100%;
+            height: 100%;
             padding: 20px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            height: 95%;
         }
 
         /* --- En-tête (Mois, Année, Navigation) --- */
@@ -38,6 +34,7 @@
             align-items: center;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            flex-shrink: 0; /* Empêche l'en-tête de se réduire */
         }
 
         .header-group {
@@ -86,15 +83,17 @@
             color: #fff;
         }
 
-        /* --- Grille du Calendrier --- */
+        /* --- Structure de la Grille --- */
         #calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            grid-template-rows: auto repeat(6, 1fr); /* Assure des hauteurs de lignes égales */
+            grid-template-rows: auto repeat(6, 1fr); /* 1 ligne pour les en-têtes, 6 pour les jours */
             gap: 5px;
-            flex-grow: 1; /* Permet à la grille de prendre l'espace restant */
+            flex-grow: 1; /* Prend l'espace vertical restant */
+            min-height: 0;
         }
-
+        
+        /* --- Style des Cellules --- */
         .grid-cell {
             border: 1px solid #000000;
             position: relative;
@@ -109,6 +108,9 @@
             text-align: center;
             padding: 10px 0;
             font-size: 1.2rem;
+            border: 2px solid #000;
+            align-items: center;
+            justify-content: center;
         }
 
         .day-number {
@@ -116,9 +118,6 @@
             position: absolute;
             top: 3px;
             left: 5px;
-            min-width: 30px;
-            min-height: 30px;
-            text-align: center;
         }
         
         .day-cell {
@@ -133,6 +132,7 @@
         .empty-cell {
             background-color: #f8f8f8;
             cursor: default;
+            border-color: #ccc;
         }
 
         /* --- Marqueurs Spéciaux --- */
@@ -149,6 +149,8 @@
             justify-content: center;
             align-items: center;
             padding: 2px;
+            width: 1.5em;
+            height: 1.5em;
         }
         
         .wrong-click {
@@ -181,7 +183,7 @@
         .weekend-icon {
             position: absolute;
             bottom: 5px;
-            left: 5px;
+            right: 5px; /* MODIFIÉ: Déplacé à droite pour éviter la superposition */
             font-size: 1.5rem;
         }
 
@@ -252,7 +254,6 @@
         @media (max-width: 768px) { /* Pour tablettes */
             #calendar-container {
                 padding: 15px;
-                height: auto;
             }
             #month-year {
                 font-size: 2rem;
@@ -270,15 +271,9 @@
         }
 
         @media (max-width: 480px) { /* Pour téléphones mobiles */
-            body {
-                height: auto;
-            }
             #calendar-container {
                 padding: 10px;
-                width: 100%;
-                height: 100vh; /* Prend toute la hauteur de l'écran */
                 border: none;
-                box-sizing: border-box; /* Inclut padding et border dans la largeur/hauteur totale */
                 box-shadow: none;
             }
             #calendar-header {
@@ -300,8 +295,6 @@
             }
             .day-number {
                 font-size: 1rem;
-                min-width: auto;
-                min-height: auto;
             }
             .weekend-icon, .user-house-icon {
                 font-size: 1rem;
@@ -327,7 +320,7 @@
             <div class="header-group"></div> <!-- Placeholder for balance -->
         </div>
         <div id="calendar-grid">
-            <!-- Les jours de la semaine et les dates seront générés par JavaScript -->
+            <!-- Le contenu du calendrier sera généré par JavaScript ici -->
         </div>
     </div>
 
@@ -479,9 +472,10 @@
                 const month = currentDate.getMonth();
                 monthYearDisplay.textContent = `${monthNames[month]} ${year}`;
 
+                // 1. Ajouter les en-têtes des jours de la semaine à la grille
                 dayNames.forEach(day => {
                     const dayHeaderCell = document.createElement('div');
-                    dayHeaderCell.classList.add('grid-cell', 'day-header');
+                    dayHeaderCell.classList.add('day-header');
                     dayHeaderCell.textContent = day;
                     calendarGrid.appendChild(dayHeaderCell);
                 });
@@ -490,80 +484,76 @@
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const today = new Date();
 
-                // On calcule le nombre total de cellules à afficher (incluant les jours vides)
-                const totalCells = firstDayOfMonth + daysInMonth;
-                const numRows = Math.ceil(totalCells / 7);
-                
-                for (let i = 0; i < numRows * 7; i++) {
-                     const dayCell = document.createElement('div');
-                     dayCell.classList.add('grid-cell');
-                     
-                     if (i < firstDayOfMonth || i >= totalCells) {
-                        dayCell.classList.add('empty-cell');
-                        calendarGrid.appendChild(dayCell);
-                        continue;
-                     }
-                     
-                     const day = i - firstDayOfMonth + 1;
-                     const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                     dayCell.dataset.date = dateKey;
-                     dayCell.classList.add('day-cell');
-                     
-                     const dayNumber = document.createElement('span');
-                     dayNumber.classList.add('day-number');
-                     dayNumber.textContent = day;
-                     dayCell.appendChild(dayNumber);
+                // 2. Remplir la grille avec 42 cases (jours + vides)
+                for (let i = 0; i < 42; i++) {
+                    const dayCell = document.createElement('div');
+                    const day = i - firstDayOfMonth + 1;
 
-                     const contentWrapper = document.createElement('div');
-                     contentWrapper.classList.add('day-content-wrapper');
-                     dayCell.appendChild(contentWrapper);
-                     
-                     if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
-                        dayCell.classList.add('today');
-                     }
-                     
-                     const dayOfWeek = new Date(year, month, day).getDay();
-                     if (dayOfWeek === 0 || dayOfWeek === 6) {
-                        const houseIcon = document.createElement('span');
-                        houseIcon.textContent = '🏠';
-                        houseIcon.classList.add('weekend-icon');
-                        dayCell.appendChild(houseIcon);
-                     }
-                     
-                     // Appliquer les données sauvegardées
-                     if (calendarData[dateKey]) {
-                        if (calendarData[dateKey].imageUrl) {
-                            const img = document.createElement('img');
-                            img.src = calendarData[dateKey].imageUrl;
-                            img.classList.add('event-image');
-                            img.onerror = () => img.src = 'https://placehold.co/100x100/000000/FFFFFF?text=Erreur';
-                            contentWrapper.appendChild(img);
+                    if (day > 0 && day <= daysInMonth) {
+                        // C'est un jour valide du mois
+                        dayCell.classList.add('grid-cell', 'day-cell');
+                        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        dayCell.dataset.date = dateKey;
+                        
+                        const dayNumber = document.createElement('span');
+                        dayNumber.classList.add('day-number');
+                        dayNumber.textContent = day;
+                        dayCell.appendChild(dayNumber);
+
+                        const contentWrapper = document.createElement('div');
+                        contentWrapper.classList.add('day-content-wrapper');
+                        dayCell.appendChild(contentWrapper);
+                        
+                        if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+                            dayCell.classList.add('today');
                         }
-                        if (calendarData[dateKey].hasHouse) {
+                        
+                        const dayOfWeek = new Date(year, month, day).getDay();
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
                             const houseIcon = document.createElement('span');
                             houseIcon.textContent = '🏠';
-                            houseIcon.classList.add('user-house-icon');
+                            houseIcon.classList.add('weekend-icon');
                             dayCell.appendChild(houseIcon);
                         }
-                     }
-                     
-                     dayCell.dataset.clickCount = '0';
-                     dayCell.addEventListener('click', () => {
-                        if (isCountingMode) {
-                            handleCountingClick(day, dayCell);
-                        } else {
-                            if (dayCell.clickResetTimer) clearTimeout(dayCell.clickResetTimer);
-                            let count = parseInt(dayCell.dataset.clickCount, 10) + 1;
-                            if (count >= 5) {
-                                dayCell.dataset.clickCount = '0';
-                                openActionModal(dayCell);
-                            } else {
-                                dayCell.dataset.clickCount = count;
-                                dayCell.clickResetTimer = setTimeout(() => { dayCell.dataset.clickCount = '0'; }, 1500);
+                        
+                        // Appliquer les données sauvegardées
+                        if (calendarData[dateKey]) {
+                            if (calendarData[dateKey].imageUrl) {
+                                const img = document.createElement('img');
+                                img.src = calendarData[dateKey].imageUrl;
+                                img.classList.add('event-image');
+                                img.onerror = () => img.src = 'https://placehold.co/100x100/000000/FFFFFF?text=Erreur';
+                                contentWrapper.appendChild(img);
+                            }
+                            if (calendarData[dateKey].hasHouse) {
+                                const houseIcon = document.createElement('span');
+                                houseIcon.textContent = '🏠';
+                                houseIcon.classList.add('user-house-icon');
+                                dayCell.appendChild(houseIcon);
                             }
                         }
-                     });
-                     calendarGrid.appendChild(dayCell);
+                        
+                        dayCell.dataset.clickCount = '0';
+                        dayCell.addEventListener('click', () => {
+                            if (isCountingMode) {
+                                handleCountingClick(day, dayCell);
+                            } else {
+                                if (dayCell.clickResetTimer) clearTimeout(dayCell.clickResetTimer);
+                                let count = parseInt(dayCell.dataset.clickCount, 10) + 1;
+                                if (count >= 5) {
+                                    dayCell.dataset.clickCount = '0';
+                                    openActionModal(dayCell);
+                                } else {
+                                    dayCell.dataset.clickCount = count;
+                                    dayCell.clickResetTimer = setTimeout(() => { dayCell.dataset.clickCount = '0'; }, 1500);
+                                }
+                            }
+                        });
+                    } else {
+                        // C'est une case vide
+                        dayCell.classList.add('grid-cell', 'empty-cell');
+                    }
+                    calendarGrid.appendChild(dayCell);
                 }
             }
 

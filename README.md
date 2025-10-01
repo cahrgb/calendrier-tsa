@@ -1,2 +1,2 @@
 # calendrier-tsa
-Calendrier pour le but d'utiliser avec la clientèle TSA
+Calendrier qui a pour le but d'être utilisé avec la clientèle TSA

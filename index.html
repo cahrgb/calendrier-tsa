@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -118,6 +117,8 @@
             position: absolute;
             top: 3px;
             left: 5px;
+            /* Transition pour l'effet d'activation/désactivation */
+            transition: background-color 0.2s, color 0.2s; 
         }
         
         .day-cell {
@@ -441,13 +442,34 @@
                 closeActionModal();
             }
             
-            // --- Fonctions de comptage ---
+            // --- Fonctions de comptage (Modifiée) ---
             function handleCountingClick(day, dayCell) {
+                // Cas 1: L'utilisateur clique sur le chiffre attendu (On avance)
                 if (day === countHighlight) {
                     const dayNumberElement = dayCell.querySelector('.day-number');
                     dayNumberElement.classList.add('counting-highlight');
                     countHighlight++;
-                } else if (day > 0) {
+                } 
+                // Cas 2: L'utilisateur clique sur un chiffre précédent (On recule / On annule)
+                // Si on clique sur 7 alors qu'on est à 24, on efface tout de 7 à 24.
+                else if (day < countHighlight && day > 0) {
+                    // Sélectionner tous les éléments actuellement surlignés
+                    const highlightedElements = document.querySelectorAll('.counting-highlight');
+                    
+                    highlightedElements.forEach(element => {
+                        const num = parseInt(element.textContent, 10);
+                        // Si le numéro est supérieur ou égal au jour cliqué, on désactive
+                        if (num >= day) {
+                            element.classList.remove('counting-highlight');
+                        }
+                    });
+                    
+                    // On remet le compteur au jour cliqué
+                    // (L'utilisateur devra cliquer à nouveau sur ce jour pour le réactiver)
+                    countHighlight = day;
+                }
+                // Cas 3: L'utilisateur clique trop loin (Erreur)
+                else if (day > countHighlight) {
                     dayCell.classList.add('wrong-click');
                     setTimeout(() => { dayCell.classList.remove('wrong-click'); }, 400);
                 }
@@ -648,4 +670,3 @@
     </script>
 </body>
 </html>
-
